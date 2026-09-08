@@ -1,0 +1,5 @@
+LiveClass Pro generated project
+HTML pages: 20
+JS modules: 9
+CSS files: 1
+Pages: admin-live.html, admin.html, course-details.html, courses.html, dashboard.html, help.html, index.html, leaderboard.html, live-class.html, login.html, notes.html, notifications.html, profile.html, recordings.html, result.html, schedule.html, settings.html, teacher.html, test.html, tests.html

@@ -1,0 +1,87 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function me() {
+      return signedIn() ? get(/databases/$(database)/documents/users/$(request.auth.uid)) : null;
+    }
+    function role(r) { return signedIn() && me().data.role == r; }
+    function staff() { return signedIn() && (me().data.role == 'admin' || me().data.role == 'teacher'); }
+    function admin() { return role('admin'); }
+
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || staff());
+      allow create: if signedIn() && request.auth.uid == uid;
+      allow update: if signedIn() && (request.auth.uid == uid || admin());
+      allow delete: if admin();
+    }
+
+    match /courses/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /chapters/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /lectures/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /schedules/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /recordings/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /notes/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /tests/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /results/{id} {
+      allow read: if signedIn() && (resource.data.studentId == request.auth.uid || staff());
+      allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if staff();
+    }
+    match /notifications/{id} {
+      allow read: if signedIn() && resource.data.userId == request.auth.uid;
+      allow create, update, delete: if staff();
+    }
+    match /announcements/{id} { allow read: if signedIn(); allow write: if staff(); }
+    match /leaderboard/{uid} {
+      allow read: if signedIn();
+      allow write: if admin() || (signedIn() && request.auth.uid == uid);
+    }
+    match /attendance/{id} {
+      allow read: if signedIn() && (resource.data.studentId == request.auth.uid || staff());
+      allow create: if signedIn() && request.resource.data.studentId == request.auth.uid;
+      allow update, delete: if staff();
+    }
+    match /reports/{id} { allow create: if signedIn(); allow read, update, delete: if staff(); }
+    match /settings/{id} { allow read: if signedIn(); allow write: if admin(); }
+
+    match /liveSessions/{sid} {
+      allow read: if signedIn();
+      allow create, update, delete: if staff();
+      match /offers/{id} {
+        allow read, create, update, delete: if signedIn();
+      }
+      match /answers/{id} {
+        allow read, create, update, delete: if signedIn();
+      }
+      match /candidates/{peerId}/items/{id} {
+        allow read, create, update, delete: if signedIn();
+      }
+      match /participants/{uid} {
+        allow read: if signedIn();
+        allow create, update, delete: if signedIn() && (request.auth.uid == uid || staff());
+      }
+      match /messages/{id} {
+        allow read, create, update, delete: if signedIn();
+      }
+      match /polls/{id} {
+        allow read: if signedIn();
+        allow create, update, delete: if staff();
+        match /votes/{uid} {
+          allow read: if signedIn();
+          allow create: if signedIn() && request.auth.uid == uid;
+          allow update, delete: if staff() || request.auth.uid == uid;
+        }
+      }
+      match /liveTests/{id} {
+        allow read: if signedIn();
+        allow create, update, delete: if staff();
+        match /answers/{uid} {
+          allow read: if signedIn() && (request.auth.uid == uid || staff());
+          allow create, update: if signedIn() && request.auth.uid == uid;
+          allow delete: if staff();
+        }
+      }
+    }
+  }
+}
