@@ -1,0 +1,6 @@
+import {db,collection,addDoc,onSnapshot,query,orderBy,serverTimestamp,doc,setDoc} from "./firebase.js";import {esc,toast} from "./app.js";
+export function pollRoom(sessionId,user,host,{staff=false}={}) {
+  const ref=collection(db,"liveSessions",sessionId,"polls");
+  return onSnapshot(query(ref,orderBy("createdAt","desc")),s=>{let d=s.docs[0];if(!d){host.innerHTML="";return}let p=d.data();host.innerHTML=`<div class="card"><span class="badge">LIVE POLL</span><h3>${esc(p.question)}</h3>${(p.options||[]).map((o,i)=>`<button class="btn pollopt" data-i="${i}" style="width:100%;margin:4px 0;text-align:left">${String.fromCharCode(65+i)}. ${esc(o)}</button>`).join("")}<div class="muted" id="pollStats"></div>${staff?`<button id="closePoll" class="btn danger small">Close poll</button>`:""}</div>`;host.querySelectorAll(".pollopt").forEach(b=>b.onclick=async()=>{await setDoc(doc(db,"liveSessions",sessionId,"polls",d.id,"votes",user.uid),{option:Number(b.dataset.i),createdAt:serverTimestamp()});toast("Vote submitted","success")});if(staff)host.querySelector("#closePoll").onclick=()=>setDoc(doc(db,"liveSessions",sessionId,"polls",d.id),{open:false},{merge:true})});
+}
+export async function createPoll(sessionId,question,options){await addDoc(collection(db,"liveSessions",sessionId,"polls"),{question,options,open:true,createdAt:serverTimestamp()})}

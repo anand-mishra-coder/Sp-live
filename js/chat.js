@@ -1,0 +1,6 @@
+import {db,collection,addDoc,onSnapshot,query,orderBy,serverTimestamp,doc,updateDoc,deleteDoc} from "./firebase.js";import {esc,fmtTime,toast} from "./app.js";
+export function liveChat(sessionId,user,box,input,sendBtn,opts={}) {
+  const ref=collection(db,"liveSessions",sessionId,"messages"); let unsub=onSnapshot(query(ref,orderBy("createdAt","asc")),s=>{box.innerHTML=s.docs.map(d=>{let x=d.data();return `<div class="msg"><b>${esc(x.name||"Student")}</b>${x.admin?" <span class='badge'>Admin</span>":""}<time>${fmtTime(x.createdAt)}</time><div>${esc(x.text)}</div>${opts.staff?`<button class="btn small danger del" data-id="${d.id}">Delete</button>`:""}</div>`}).join("");box.scrollTop=box.scrollHeight});
+  async function send(){let text=input.value.trim();if(!text)return;if(opts.slowMode && Date.now()-(liveChat.last||0)<5000){toast("Slow mode: wait a few seconds","error");return}liveChat.last=Date.now();text=text.replace(/fuck|shit|bitch|asshole/gi,"•••");await addDoc(ref,{uid:user.uid,name:user.displayName||"Student",text,admin:opts.staff,createdAt:serverTimestamp()});input.value=""}
+  sendBtn.onclick=send;input.addEventListener("keydown",e=>{if(e.key==="Enter")send()});return unsub;
+}
